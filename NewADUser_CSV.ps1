@@ -4,15 +4,15 @@
 .SYNOPSIS
     Create new AD users by importing values from a CSV file.
 .DESCRIPTION   
-    Search a given folder (line 34) for CSV files, import each one and collect user data, run New-ADUser cmdlet for each entry in each CSV. The CSV file can have any name. A log is
-    created while running the commands and after completion the log and the CSV are moved to another folder (like 'Complete' or 'Failed') specified on lines 35 and 36.
+    Search a given folder for CSV files, import each one and collect user data, run New-ADUser cmdlet for each entry in each CSV. The CSV file can have any name. A log is
+    created while running the commands and after completion the log and the CSV are moved to another folder (like 'Complete' or 'Failed').
 
     For each entry in a CSV the script: checks for CN and SamAccountName availability; sets the Department attribute and uses it to determine OU, HomeDrive specifics, and some AD groups;
     sets the Location attribute and uses it to determine Office, City, State, Zip, and some more AD groups. Once all attributes are established it runs the New-ADUser cmdlet.
-    If successful it creates a HomeDrive (if required), adds AD groups from a TemplateUser (if provided), then moves the CSV and the log to the folder specified on line 36 for documentation.
-    If the script fails to create a user it moves the CSV file and the log to the folder specified on line 38 for review.    
+    If successful it creates a HomeDrive (if required), adds AD groups from a TemplateUser (if provided), then moves the CSV and the log to the folder specified for documentation.
+    If the script fails to create a user it moves the CSV file and the log to the folder for review.    
 .NOTES
-    The file can have any name, as long as it's in the folder specified on line 34.
+    The file can have any name, as long as it's in the folder specified.
     The script runs the Import-Csv cmdlet against any file in that folder and fails if it can't find a CSV file.
     v4.1.7
 #>
@@ -89,9 +89,9 @@ foreach ($File in $FileNames) {
 
         # Create a log so we can still examine output details if the console window is closed
         if ($Initial) {
-            $LogFile = "C:\Temp\New Users - Complete\New DOL User - $LastName, $FirstName $Initial.log"
+            $LogFile = "C:\Temp\New Users - Complete\New User - $LastName, $FirstName $Initial.log"
         } else {
-            $LogFile = "C:\Temp\New Users - Complete\New DOL User - $LastName, $FirstName.log"
+            $LogFile = "C:\Temp\New Users - Complete\New User - $LastName, $FirstName.log"
         }
         
         Write-Host "-----------------------------------------------------------------" -ForegroundColor Cyan
@@ -288,14 +288,14 @@ foreach ($File in $FileNames) {
                     Write-Host "WARN - User is a $Type but there is no expiration date!" -ForegroundColor Yellow
                 }
                 
-                # If there's a Template account, try to clone all AD groups with CN that starts with 'Name'
+                # If there's a Template account, try to clone all AD groups with CN that starts with 'Dept'
                 if ($Template) {
                     Write-Log "INFO - Cloning AD groups from $Template..."
-                    $CloneADgroups = (Get-ADPrincipalGroupMembership -Identity $Template | Where-Object {$_.DistinguishedName -like 'CN=Name*'}).Name
+                    $CloneADgroups = (Get-ADPrincipalGroupMembership -Identity $Template | Where-Object {$_.DistinguishedName -like 'CN=Dept*'}).Name
                     Add-ADPrincipalGroupMembership -Identity $UserName -MemberOf $CloneADgroups
                     if ($? -ne $true) {
-                        Write-Log "WARN - AD group cloning failed. '$UserName' has no AD groups!"
-                        Write-Host "WARN - AD group cloning failed. '$UserName' has no AD groups!" -ForegroundColor Yellow
+                        Write-Log "WARN - AD group cloning failed. '$UserName' is missing one or more AD groups!"
+                        Write-Host "WARN - AD group cloning failed. '$UserName' is missing one or more AD groups!" -ForegroundColor Yellow
                         Write-Host "-----------------------------------------------------------------" -ForegroundColor Cyan
                         Write-Host ""
                     } else {
